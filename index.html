@@ -335,7 +335,8 @@ function initFirebase() {
 }
 
 async function submitHighScore(name, score) {
-  if (!db || !name || score < 100) return;
+  if (!db || !name) return false;
+  if (score < 100) return false;
   const leaderboardRef = db.ref('leaderboard');
   const newScoreRef = leaderboardRef.push();
   await newScoreRef.set({
@@ -344,6 +345,7 @@ async function submitHighScore(name, score) {
     timestamp: firebase.database.ServerValue.TIMESTAMP
   });
   console.log('🏆 Score submitted: ' + score + ' by ' + name);
+  return true;
 }
 
 async function getTopScores() {
@@ -412,6 +414,7 @@ let state = {
 };
 
 let cow, projectiles, enemies, drops, particles, terrainTiles, passives;
+let submittedName = null;
 
 // ─── TERRAIN DEFS ────────────────────────────────────────────────────────────
 const TERRAINS = {
@@ -632,6 +635,7 @@ function startGame() {
   particles = [];
   passives = [];
   terrainTiles = initTerrain();
+  submittedName = null;
   Object.assign(state, {
     running:true, score:0, lives:3, combo:1, comboTimer:0,
     speed:1.5, speedTimer:0,
@@ -813,7 +817,12 @@ function update(dt) {
     // Hit cow
     if (!e.dead && state.invincible <= 0 && dist < 22 + (e.type.size/2)) {
       e.dead = true;
-      takeDamage();
+      if (state.chargeTimer > 0) {
+        addScore(e.type.score);
+        spawnParticle(e.x, e.y, e.type.color, 12);
+      } else {
+        takeDamage();
+      }
     }
   });
 
@@ -1273,7 +1282,7 @@ function takeDamage() {
   state.lives--;
   state.invincible = 1800;
   state.combo = 1;
-  for (let i=0; i<12; i++) spawnParticle(cow.x, cow.y, '#ff3333', 12);
+  spawnParticle(cow.x, cow.y, '#ff3333', 12);
   updateHUD();
   if (state.lives <= 0) gameOver();
 }
@@ -1348,11 +1357,20 @@ function gameOver() {
     btn.textContent = "SAVING...";
     btn.disabled = true;
 
-    await submitHighScore(name, state.score);
-    
+    const submitted = await submitHighScore(name, state.score);
+
+    if (!submitted) {
+      btn.textContent = "SCORE TOO LOW (need 100+)";
+      btn.style.background = 'rgba(80,80,80,0.6)';
+      btn.disabled = false;
+      return;
+    }
+
+    submittedName = name;
+
     // Refresh leaderboard after submit
     await loadLeaderboard();
-    
+
     btn.style.display = 'none';
     nameInput.style.display = 'none';
   });
@@ -1360,23 +1378,27 @@ function gameOver() {
 
 async function loadLeaderboard() {
   const listEl = document.getElementById('leaderboardList');
+  if (!listEl) return;
   listEl.innerHTML = '<div style="text-align:center; color:#888;">LOADING TOP COWS...</div>';
-  
+
   const scores = await getTopScores();
-  
+
+  const listEl2 = document.getElementById('leaderboardList');
+  if (!listEl2) return;
+
   let html = '';
   if (scores.length === 0) {
     html = '<div style="text-align:center; color:#666;">No scores yet — be the first!</div>';
   } else {
     scores.forEach((s, i) => {
-      const isYou = s.score === state.score; // simple highlight
+      const isYou = submittedName && s.name === submittedName && s.score === state.score;
       html += `<div style="display:flex; justify-content:space-between; ${isYou ? 'color:#ffe066; font-weight:bold;' : ''}">
                  <span>${i+1}. ${s.name}</span>
                  <span>${s.score}</span>
                </div>`;
     });
   }
-  listEl.innerHTML = html;
+  listEl2.innerHTML = html;
 }
 </script>
 </body>
