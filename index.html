@@ -477,38 +477,37 @@ function playMilkShot() {
     const t  = audioCtx.currentTime;
     const sr = audioCtx.sampleRate;
 
-    // Wet noise — low-passed for a muffled squish body
-    const len  = Math.floor(sr * 0.16);
-    const buf  = audioCtx.createBuffer(1, len, sr);
-    const data = buf.getChannelData(0);
-    for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
-    const src = audioCtx.createBufferSource();
-    src.buffer = buf;
-
-    const lp = audioCtx.createBiquadFilter();
-    lp.type = 'lowpass';
-    lp.frequency.value = 500;
-    lp.Q.value = 1.5;
-
+    // "tha" — soft wet attack noise burst
+    const noiseLen = Math.floor(sr * 0.05);
+    const buf = audioCtx.createBuffer(1, noiseLen, sr);
+    const d   = buf.getChannelData(0);
+    for (let i = 0; i < noiseLen; i++) d[i] = Math.random() * 2 - 1;
+    const noise = audioCtx.createBufferSource();
+    noise.buffer = buf;
+    const nlp = audioCtx.createBiquadFilter();
+    nlp.type = 'lowpass'; nlp.frequency.value = 700;
     const gNoise = audioCtx.createGain();
-    gNoise.gain.setValueAtTime(0.55, t);
-    gNoise.gain.exponentialRampToValueAtTime(0.001, t + 0.16);
+    gNoise.gain.setValueAtTime(0.35, t);
+    gNoise.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
 
-    // Low thump (120→35 Hz) — the "squish" impact punch
-    const thump = audioCtx.createOscillator();
-    thump.type = 'sine';
-    thump.frequency.setValueAtTime(120, t);
-    thump.frequency.exponentialRampToValueAtTime(35, t + 0.09);
+    // "woo-pew" — sine rises then drops sharply
+    const osc = audioCtx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(160, t);
+    osc.frequency.linearRampToValueAtTime(460, t + 0.07);    // woo: rise
+    osc.frequency.exponentialRampToValueAtTime(55, t + 0.22); // pew: fall
 
-    const gThump = audioCtx.createGain();
-    gThump.gain.setValueAtTime(0.45, t);
-    gThump.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+    const gOsc = audioCtx.createGain();
+    gOsc.gain.setValueAtTime(0.0, t);
+    gOsc.gain.linearRampToValueAtTime(0.55, t + 0.04);
+    gOsc.gain.setValueAtTime(0.55, t + 0.07);
+    gOsc.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
 
-    src.connect(lp); lp.connect(gNoise); gNoise.connect(audioCtx.destination);
-    thump.connect(gThump); gThump.connect(audioCtx.destination);
+    noise.connect(nlp); nlp.connect(gNoise); gNoise.connect(audioCtx.destination);
+    osc.connect(gOsc); gOsc.connect(audioCtx.destination);
 
-    src.start(t);
-    thump.start(t); thump.stop(t + 0.12);
+    noise.start(t);
+    osc.start(t); osc.stop(t + 0.24);
   } catch(e) {}
 }
 
@@ -846,7 +845,7 @@ function update(dt) {
     state.chargeTimer = 600;
     state.chargeCooldown = 2500;
     spawnParticle(cow.x, cow.y, '#ffaa00', 16);
-    playMoo(1.6, 0.35);
+    playMoo(1.6, 0.5);
   }
 
   // Dash (B + direction)
@@ -1401,7 +1400,7 @@ function takeDamage() {
   state.invincible = 1800;
   state.combo = 1;
   spawnParticle(cow.x, cow.y, '#ff3333', 12);
-  playMoo(0.82, 0.55);
+  playMoo(0.82, 0.75);
   updateHUD();
   if (state.lives <= 0) gameOver();
 }
