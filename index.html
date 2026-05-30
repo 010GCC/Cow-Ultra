@@ -488,12 +488,11 @@ const PASSIVE_TYPES = [
 const keys = { up:false, down:false, left:false, right:false, a:false, b:false, c:false };
 const prevKeys = {};
 
-// ── D-PAD: slide-aware touch overlay with multi-touch pointer tracking
+// ── D-PAD: raw touch events for minimum latency on iOS Safari
 (function() {
   const overlay = document.getElementById('dpadOverlay');
   const SIZE = 138;
   const ARM  = 46;
-  const activePointers = new Map(); // pointerId -> dir
 
   function getDirFromXY(x, y) {
     const cx = SIZE/2, cy = SIZE/2;
@@ -506,7 +505,8 @@ const prevKeys = {};
 
   function clearDpad() {
     keys.up = keys.down = keys.left = keys.right = false;
-    ['dUp','dDown','dLeft','dRight'].forEach(id => document.getElementById(id).classList.remove('pressed'));
+    ['dUp','dDown','dLeft','dRight'].forEach(id =>
+      document.getElementById(id).classList.remove('pressed'));
   }
 
   function applyDir(dir) {
@@ -517,42 +517,20 @@ const prevKeys = {};
     document.getElementById(map[dir]).classList.add('pressed');
   }
 
-  function getRelXY(e) {
+  // e.targetTouches = all fingers currently on this element — handles
+  // multi-touch naturally: last touch wins, lifts update automatically.
+  function applyTouches(touches) {
+    if (touches.length === 0) { clearDpad(); return; }
     const rect = overlay.getBoundingClientRect();
-    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    const t = touches[touches.length - 1];
+    applyDir(getDirFromXY(t.clientX - rect.left, t.clientY - rect.top));
   }
 
-  overlay.addEventListener('pointerdown', e => {
-    e.preventDefault();
-    overlay.setPointerCapture(e.pointerId);
-    const {x,y} = getRelXY(e);
-    const dir = getDirFromXY(x, y);
-    activePointers.set(e.pointerId, dir);
-    applyDir(dir);
-  }, { passive: false });
-
-  overlay.addEventListener('pointermove', e => {
-    e.preventDefault();
-    if (!activePointers.has(e.pointerId)) return;
-    const {x,y} = getRelXY(e);
-    const dir = getDirFromXY(x, y);
-    activePointers.set(e.pointerId, dir);
-    applyDir(dir);
-  }, { passive: false });
-
-  function releasePointer(e) {
-    e.preventDefault();
-    activePointers.delete(e.pointerId);
-    if (activePointers.size === 0) {
-      clearDpad();
-    } else {
-      const dirs = [...activePointers.values()];
-      applyDir(dirs[dirs.length - 1]);
-    }
-  }
-
-  overlay.addEventListener('pointerup',     releasePointer, { passive: false });
-  overlay.addEventListener('pointercancel', releasePointer, { passive: false });
+  const opts = { passive: false };
+  overlay.addEventListener('touchstart',  e => { e.preventDefault(); applyTouches(e.targetTouches); }, opts);
+  overlay.addEventListener('touchmove',   e => { e.preventDefault(); applyTouches(e.targetTouches); }, opts);
+  overlay.addEventListener('touchend',    e => { e.preventDefault(); applyTouches(e.targetTouches); }, opts);
+  overlay.addEventListener('touchcancel', e => { e.preventDefault(); clearDpad(); }, opts);
 })();
 
 // ── ACTION BUTTONS: slide-aware touch overlay
