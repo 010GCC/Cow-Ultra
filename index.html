@@ -717,20 +717,17 @@ const prevKeys = {};
   overlay.addEventListener('touchcancel', e => { e.preventDefault(); clearDpad(); }, opts);
 })();
 
-// ── ACTION BUTTONS: slide-aware touch overlay
+// ── ACTION BUTTONS: raw touch events (same pattern as d-pad — prevents iOS zoom)
 (function() {
   const overlay = document.getElementById('actionOverlay');
   const BTN_SIZE = 54;
-
-  // Button centers within #actionBtns (148x148 container)
   const BTNS = [
     { id: 'btnC', key: 'c', cx: 4  + BTN_SIZE/2, cy: 4  + BTN_SIZE/2 },
     { id: 'btnB', key: 'b', cx: 47 + BTN_SIZE/2, cy: 47 + BTN_SIZE/2 },
     { id: 'btnA', key: 'a', cx: 90 + BTN_SIZE/2, cy: 90 + BTN_SIZE/2 },
   ];
   const RADIUS = BTN_SIZE / 2 + 4;
-
-  const activeKeys = new Set();
+  const touchBtns = new Map(); // touchId -> btn
 
   function getBtnAt(x, y) {
     let best = null, bestD = Infinity;
@@ -741,65 +738,69 @@ const prevKeys = {};
     return best;
   }
 
+  function getRelXY(touch) {
+    const rect = overlay.getBoundingClientRect();
+    return { x: touch.clientX - rect.left, y: touch.clientY - rect.top };
+  }
+
   function pressBtn(btn) {
-    if (!btn || activeKeys.has(btn.key)) return;
-    activeKeys.add(btn.key);
+    if (!btn || keys[btn.key]) return;
     keys[btn.key] = true;
     document.getElementById(btn.id).classList.add('pressed');
   }
 
   function releaseBtn(btn) {
     if (!btn) return;
-    activeKeys.delete(btn.key);
     keys[btn.key] = false;
     document.getElementById(btn.id).classList.remove('pressed');
   }
 
   function releaseAll() {
-    BTNS.forEach(b => { activeKeys.delete(b.key); keys[b.key]=false; document.getElementById(b.id).classList.remove('pressed'); });
+    BTNS.forEach(b => { keys[b.key] = false; document.getElementById(b.id).classList.remove('pressed'); });
   }
 
-  const pointerBtns = new Map(); // pointerId -> btn
+  const opts = { passive: false };
 
-  function getRelXY(e) {
-    const rect = overlay.getBoundingClientRect();
-    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
-  }
-
-  overlay.addEventListener('pointerdown', e => {
+  overlay.addEventListener('touchstart', e => {
     e.preventDefault();
-    overlay.setPointerCapture(e.pointerId);
-    const {x,y} = getRelXY(e);
-    const btn = getBtnAt(x,y);
-    pointerBtns.set(e.pointerId, btn);
-    pressBtn(btn);
-  }, { passive:false });
-
-  overlay.addEventListener('pointermove', e => {
-    e.preventDefault();
-    if (e.buttons === 0) return;
-    const {x,y} = getRelXY(e);
-    const newBtn = getBtnAt(x,y);
-    const oldBtn = pointerBtns.get(e.pointerId);
-    if (newBtn !== oldBtn) {
-      releaseBtn(oldBtn);
-      pointerBtns.set(e.pointerId, newBtn);
-      pressBtn(newBtn);
+    for (const t of e.changedTouches) {
+      const {x, y} = getRelXY(t);
+      const btn = getBtnAt(x, y);
+      touchBtns.set(t.identifier, btn);
+      pressBtn(btn);
     }
-  }, { passive:false });
+  }, opts);
 
-  overlay.addEventListener('pointerup', e => {
+  overlay.addEventListener('touchmove', e => {
     e.preventDefault();
-    releaseBtn(pointerBtns.get(e.pointerId));
-    pointerBtns.delete(e.pointerId);
-  }, { passive:false });
+    for (const t of e.changedTouches) {
+      const {x, y} = getRelXY(t);
+      const newBtn = getBtnAt(x, y);
+      const oldBtn = touchBtns.get(t.identifier);
+      if (newBtn !== oldBtn) {
+        releaseBtn(oldBtn);
+        touchBtns.set(t.identifier, newBtn);
+        pressBtn(newBtn);
+      }
+    }
+  }, opts);
 
-  overlay.addEventListener('pointercancel', e => {
+  overlay.addEventListener('touchend', e => {
     e.preventDefault();
-    releaseBtn(pointerBtns.get(e.pointerId));
-    pointerBtns.delete(e.pointerId);
-    if (pointerBtns.size === 0) releaseAll();
-  }, { passive:false });
+    for (const t of e.changedTouches) {
+      releaseBtn(touchBtns.get(t.identifier));
+      touchBtns.delete(t.identifier);
+    }
+  }, opts);
+
+  overlay.addEventListener('touchcancel', e => {
+    e.preventDefault();
+    for (const t of e.changedTouches) {
+      releaseBtn(touchBtns.get(t.identifier));
+      touchBtns.delete(t.identifier);
+    }
+    if (touchBtns.size === 0) releaseAll();
+  }, opts);
 })();
 
 document.addEventListener('keydown', e => {
