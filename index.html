@@ -1024,8 +1024,9 @@ function update(dt) {
       if (state.chargeTimer > 0) {
         addScore(e.type.score);
         spawnParticle(e.x, e.y, e.type.color, 12);
+        if (e.type.shape === 'human') healPlayer(0.25);
       } else {
-        takeDamage();
+        takeDamage(0.5);
       }
     }
   });
@@ -1049,6 +1050,7 @@ function update(dt) {
             e.dead = true;
             addScore(e.type.score);
             spawnParticle(e.x, e.y, e.type.color, 12);
+            if (e.type.shape === 'human') healPlayer(0.25);
           }
         }
       });
@@ -1056,7 +1058,7 @@ function update(dt) {
       const dx = p.x - cow.x, dy = p.y - cow.y;
       if (state.invincible <= 0 && Math.sqrt(dx*dx+dy*dy) < 18) {
         p.dead = true;
-        takeDamage();
+        takeDamage(0.25);
       }
     }
   });
@@ -1483,14 +1485,21 @@ function addScore(pts) {
   updateHUD();
 }
 
-function takeDamage() {
-  state.lives--;
+function takeDamage(amount = 0.5) {
+  state.lives = Math.max(0, state.lives - amount);
   state.invincible = 1800;
   state.combo = 1;
   spawnParticle(cow.x, cow.y, '#ff3333', 12);
   playMoo(0.82, 0.75);
   updateHUD();
   if (state.lives <= 0) gameOver();
+}
+
+function healPlayer(amount = 0.25) {
+  state.lives = Math.min(3, state.lives + amount);
+  showFlash('+¼ LIFE!');
+  spawnParticle(cow.x, cow.y, '#44ff88', 8);
+  updateHUD();
 }
 
 function showFlash(msg) {
@@ -1502,7 +1511,18 @@ function updateHUD() {
   document.getElementById('scoreDisplay').textContent = state.score;
   document.getElementById('comboDisplay').textContent = 'x'+state.combo;
   const livesEl = document.getElementById('livesDisplay');
-  livesEl.innerHTML = '🐄'.repeat(Math.max(0,state.lives)) + '💀'.repeat(Math.max(0,3-state.lives));
+  const quarters = Math.round(state.lives * 4);
+  let lhtml = '<div style="display:flex;align-items:center;gap:4px;">';
+  for (let cow = 0; cow < 3; cow++) {
+    lhtml += '<div style="display:flex;gap:2px;">';
+    for (let q = 0; q < 4; q++) {
+      const active = (cow * 4 + q) < quarters;
+      lhtml += `<div style="width:5px;height:18px;border-radius:2px;border:1px solid ${active?'#ffaa00':'#5a3e1b'};background:${active?'#ffe066':'#3a2010'};${active?'box-shadow:0 0 3px #ffaa00;':''}"></div>`;
+    }
+    lhtml += '</div>';
+  }
+  lhtml += '</div>';
+  livesEl.innerHTML = lhtml;
   const puEl = document.getElementById('powerupDisplay');
   if (state.powerup) {
     const pu = POWERUP_TYPES.find(p=>p.id===state.powerup);
