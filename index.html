@@ -144,6 +144,7 @@
     z-index: 10;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
+    touch-action: none;
   }
 
   /* ACTION BUTTONS — absolutely positioned in a diagonal line */
@@ -172,6 +173,8 @@
     /* label drawn via ::after pseudo — no selectable text */
     color: transparent;
     font-size: 0;
+    pointer-events: none; /* overlay handles all input — prevents iOS focus-zoom */
+    outline: none;
   }
   /* letter labels via pseudo so no copy/paste */
   #btnC::after { content: 'C'; }
@@ -201,6 +204,7 @@
     top: 0; left: 0; right: 0; bottom: 0;
     z-index: 10;
     -webkit-tap-highlight-color: transparent;
+    touch-action: none;
   }
 
   /* overlay screens */
@@ -287,9 +291,9 @@
     </div>
 
     <div id="actionBtns">
-      <button class="action-btn" id="btnC"></button>
-      <button class="action-btn" id="btnB"></button>
-      <button class="action-btn" id="btnA"></button>
+      <button class="action-btn" id="btnC" tabindex="-1"></button>
+      <button class="action-btn" id="btnB" tabindex="-1"></button>
+      <button class="action-btn" id="btnA" tabindex="-1"></button>
       <div id="actionOverlay"></div>
     </div>
   </div>
