@@ -414,6 +414,78 @@ async function showLeaderboard() {
   container.innerHTML = html || '<div style="text-align:center;color:#666;">No scores yet!</div>';
 }
 
+// ─── AUDIO ───────────────────────────────────────────────────────────────────
+let audioCtx = null;
+
+function initAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+function playMoo(pitch = 1, vol = 0.45) {
+  if (!audioCtx) return;
+  try {
+    const t = audioCtx.currentTime;
+    const osc    = audioCtx.createOscillator();
+    const filter = audioCtx.createBiquadFilter();
+    const gain   = audioCtx.createGain();
+
+    osc.type = 'sawtooth';
+    filter.type = 'lowpass';
+    filter.frequency.value = 900;
+    filter.Q.value = 4;
+
+    const b = 155 * pitch;
+    osc.frequency.setValueAtTime(b, t);
+    osc.frequency.linearRampToValueAtTime(b * 1.45, t + 0.18);
+    osc.frequency.linearRampToValueAtTime(b * 1.15, t + 0.45);
+    osc.frequency.linearRampToValueAtTime(b * 0.92, t + 0.78);
+
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.linearRampToValueAtTime(vol, t + 0.06);
+    gain.gain.setValueAtTime(vol, t + 0.52);
+    gain.gain.linearRampToValueAtTime(0, t + 0.88);
+
+    osc.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(t); osc.stop(t + 0.92);
+  } catch(e) {}
+}
+
+function playMilkShot() {
+  if (!audioCtx) return;
+  try {
+    const t   = audioCtx.currentTime;
+    const len = Math.floor(audioCtx.sampleRate * 0.11);
+    const buf = audioCtx.createBuffer(1, len, audioCtx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+
+    const src    = audioCtx.createBufferSource();
+    src.buffer   = buf;
+    const filter = audioCtx.createBiquadFilter();
+    filter.type  = 'bandpass';
+    filter.frequency.value = 1600;
+    filter.Q.value = 1.2;
+    const gNoise = audioCtx.createGain();
+    gNoise.gain.setValueAtTime(0.22, t);
+    gNoise.gain.exponentialRampToValueAtTime(0.001, t + 0.11);
+
+    // Quick pitch sweep gives it a wet "squirt" feel
+    const osc  = audioCtx.createOscillator();
+    osc.type   = 'sine';
+    osc.frequency.setValueAtTime(900, t);
+    osc.frequency.exponentialRampToValueAtTime(180, t + 0.1);
+    const gOsc = audioCtx.createGain();
+    gOsc.gain.setValueAtTime(0.15, t);
+    gOsc.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+
+    src.connect(filter); filter.connect(gNoise); gNoise.connect(audioCtx.destination);
+    osc.connect(gOsc);   gOsc.connect(audioCtx.destination);
+    src.start(t);
+    osc.start(t); osc.stop(t + 0.12);
+  } catch(e) {}
+}
+
 // ─── STATE ───────────────────────────────────────────────────────────────────
 let state = {
   running: false,
@@ -641,6 +713,7 @@ function justPressed(k) { return keys[k] && !prevKeys[k]; }
 
 // ─── INIT ────────────────────────────────────────────────────────────────────
 function startGame() {
+  initAudio();
   document.getElementById('overlay').style.display = 'none';
   Object.keys(keys).forEach(k => keys[k] = false);
   Object.assign(prevKeys, keys);
@@ -747,6 +820,7 @@ function update(dt) {
     state.chargeTimer = 600;
     state.chargeCooldown = 2500;
     spawnParticle(cow.x, cow.y, '#ffaa00', 16);
+    playMoo(1.6, 0.35);
   }
 
   // Dash (B + direction)
@@ -1239,6 +1313,7 @@ function drawStar(cx, cy, pts, r1, r2) {
 
 // ─── GAME ACTIONS ─────────────────────────────────────────────────────────────
 function fireWeapon() {
+  playMilkShot();
   const pu = state.powerup;
   const baseColor = pu === 'toxic' ? '#44ff44' : pu === 'butter' ? '#ffee44' : '#ddeeff';
   const r = pu === 'supersoaker' ? 8 : pu === 'butter' ? 9 : 6;
@@ -1300,6 +1375,7 @@ function takeDamage() {
   state.invincible = 1800;
   state.combo = 1;
   spawnParticle(cow.x, cow.y, '#ff3333', 12);
+  playMoo(0.82, 0.55);
   updateHUD();
   if (state.lives <= 0) gameOver();
 }
