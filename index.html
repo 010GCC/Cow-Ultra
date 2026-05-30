@@ -426,63 +426,89 @@ function playMoo(pitch = 1, vol = 0.45) {
   if (!audioCtx) return;
   try {
     const t = audioCtx.currentTime;
-    const osc    = audioCtx.createOscillator();
-    const filter = audioCtx.createBiquadFilter();
-    const gain   = audioCtx.createGain();
+    const b = 130 * pitch;
 
-    osc.type = 'sawtooth';
-    filter.type = 'lowpass';
-    filter.frequency.value = 900;
-    filter.Q.value = 4;
-
-    const b = 155 * pitch;
+    // Triangle wave — warm, not buzzy like sawtooth
+    const osc = audioCtx.createOscillator();
+    osc.type = 'triangle';
     osc.frequency.setValueAtTime(b, t);
-    osc.frequency.linearRampToValueAtTime(b * 1.45, t + 0.18);
-    osc.frequency.linearRampToValueAtTime(b * 1.15, t + 0.45);
-    osc.frequency.linearRampToValueAtTime(b * 0.92, t + 0.78);
+    osc.frequency.linearRampToValueAtTime(b * 1.08, t + 0.25);
+    osc.frequency.setValueAtTime(b * 1.08, t + 0.55);
+    osc.frequency.linearRampToValueAtTime(b * 0.88, t + 1.0);
 
-    gain.gain.setValueAtTime(0, t);
-    gain.gain.linearRampToValueAtTime(vol, t + 0.06);
-    gain.gain.setValueAtTime(vol, t + 0.52);
-    gain.gain.linearRampToValueAtTime(0, t + 0.88);
+    // Slow vibrato — makes it feel alive
+    const lfo = audioCtx.createOscillator();
+    lfo.type = 'sine';
+    lfo.frequency.value = 5;
+    const lfoGain = audioCtx.createGain();
+    lfoGain.gain.value = 6 * pitch;
+    lfo.connect(lfoGain);
+    lfoGain.connect(osc.frequency);
 
-    osc.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
-    osc.start(t); osc.stop(t + 0.92);
+    // "oo" vowel: F1 ~300 Hz, F2 ~800 Hz — two resonant bandpass filters
+    const f1 = audioCtx.createBiquadFilter();
+    f1.type = 'bandpass'; f1.frequency.value = 300; f1.Q.value = 10;
+    const f2 = audioCtx.createBiquadFilter();
+    f2.type = 'bandpass'; f2.frequency.value = 800; f2.Q.value = 8;
+
+    // Mix both formants
+    const g1 = audioCtx.createGain(); g1.gain.value = 0.7;
+    const g2 = audioCtx.createGain(); g2.gain.value = 0.45;
+    const master = audioCtx.createGain();
+
+    master.gain.setValueAtTime(0, t);
+    master.gain.linearRampToValueAtTime(vol, t + 0.1);
+    master.gain.setValueAtTime(vol, t + 0.6);
+    master.gain.linearRampToValueAtTime(0, t + 1.1);
+
+    osc.connect(f1); osc.connect(f2);
+    f1.connect(g1);  f2.connect(g2);
+    g1.connect(master); g2.connect(master);
+    master.connect(audioCtx.destination);
+
+    lfo.start(t);   lfo.stop(t + 1.15);
+    osc.start(t);   osc.stop(t + 1.15);
   } catch(e) {}
 }
 
 function playMilkShot() {
   if (!audioCtx) return;
   try {
-    const t   = audioCtx.currentTime;
-    const len = Math.floor(audioCtx.sampleRate * 0.11);
-    const buf = audioCtx.createBuffer(1, len, audioCtx.sampleRate);
+    const t  = audioCtx.currentTime;
+    const sr = audioCtx.sampleRate;
+
+    // Wet noise — low-passed for a muffled squish body
+    const len  = Math.floor(sr * 0.16);
+    const buf  = audioCtx.createBuffer(1, len, sr);
     const data = buf.getChannelData(0);
     for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+    const src = audioCtx.createBufferSource();
+    src.buffer = buf;
 
-    const src    = audioCtx.createBufferSource();
-    src.buffer   = buf;
-    const filter = audioCtx.createBiquadFilter();
-    filter.type  = 'bandpass';
-    filter.frequency.value = 1600;
-    filter.Q.value = 1.2;
+    const lp = audioCtx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = 500;
+    lp.Q.value = 1.5;
+
     const gNoise = audioCtx.createGain();
-    gNoise.gain.setValueAtTime(0.22, t);
-    gNoise.gain.exponentialRampToValueAtTime(0.001, t + 0.11);
+    gNoise.gain.setValueAtTime(0.55, t);
+    gNoise.gain.exponentialRampToValueAtTime(0.001, t + 0.16);
 
-    // Quick pitch sweep gives it a wet "squirt" feel
-    const osc  = audioCtx.createOscillator();
-    osc.type   = 'sine';
-    osc.frequency.setValueAtTime(900, t);
-    osc.frequency.exponentialRampToValueAtTime(180, t + 0.1);
-    const gOsc = audioCtx.createGain();
-    gOsc.gain.setValueAtTime(0.15, t);
-    gOsc.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+    // Low thump (120→35 Hz) — the "squish" impact punch
+    const thump = audioCtx.createOscillator();
+    thump.type = 'sine';
+    thump.frequency.setValueAtTime(120, t);
+    thump.frequency.exponentialRampToValueAtTime(35, t + 0.09);
 
-    src.connect(filter); filter.connect(gNoise); gNoise.connect(audioCtx.destination);
-    osc.connect(gOsc);   gOsc.connect(audioCtx.destination);
+    const gThump = audioCtx.createGain();
+    gThump.gain.setValueAtTime(0.45, t);
+    gThump.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+
+    src.connect(lp); lp.connect(gNoise); gNoise.connect(audioCtx.destination);
+    thump.connect(gThump); gThump.connect(audioCtx.destination);
+
     src.start(t);
-    osc.start(t); osc.stop(t + 0.12);
+    thump.start(t); thump.stop(t + 0.12);
   } catch(e) {}
 }
 
