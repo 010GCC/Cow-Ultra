@@ -511,6 +511,93 @@ function playMilkShot() {
   } catch(e) {}
 }
 
+// ─── MUSIC ───────────────────────────────────────────────────────────────────
+let musicPlaying = false;
+let musicLoopId  = null;
+
+const MBPM  = 88;
+const MBEAT = 60 / MBPM; // seconds per beat
+
+// Frequencies
+const N = {
+  G2:98,  C3:131, D3:147, E3:165,
+  Fs3:185, G3:196, A3:220, B3:247,
+  C4:262, D4:294, E4:330, Fs4:370,
+  G4:392, A4:440, B4:494,
+  C5:523, D5:587
+};
+
+// Melody: [freq (0=rest), beats]  — 4 bars, 4/4, key of G
+// "da da da-da da  dot"
+const MELODY_SEQ = [
+  [N.G4,1],[N.D4,1],[N.G4,.5],[N.A4,.5],[N.B4,.75],[0,.25],     // bar 1 – G
+  [N.C5,1],[N.B4,1],[N.G4,.5],[N.A4,.5],[N.G4,1],               // bar 2 – C
+  [N.G4,1],[N.B4,1],[N.D4,.5],[N.G4,.5],[N.G4,.5],[0,.5],       // bar 3 – G
+  [N.D5,1],[N.A4,1],[N.Fs4,.5],[N.G4,.5],[N.G4,1],              // bar 4 – D→G
+];
+
+// Bass: [freq, beats]
+const BASS_SEQ = [
+  [N.G2,4],[N.C3,4],[N.G2,4],[N.D3,2],[N.G2,2]
+];
+
+// Chord stabs on beat 1 of each bar — quiet arpeggiated strum
+const CHORD_SEQ = [
+  [0,  [N.G3, N.B3, N.D4]],   // G major
+  [4,  [N.C3, N.E3, N.G3]],   // C major
+  [8,  [N.G3, N.B3, N.D4]],   // G major
+  [12, [N.D3, N.Fs3, N.A3]],  // D major
+];
+
+const LOOP_BEATS = 16;
+
+function pluckNote(freq, when, dBeats, vol, isBass) {
+  if (!audioCtx || !freq) return;
+  const osc  = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = isBass ? 'sine' : 'triangle';
+  osc.frequency.value = freq;
+  const decay = isBass
+    ? Math.min(dBeats * MBEAT, 1.1)
+    : Math.min(dBeats * MBEAT, 0.52);
+  gain.gain.setValueAtTime(vol, when);
+  gain.gain.exponentialRampToValueAtTime(vol * 0.35, when + 0.025); // initial pluck transient
+  gain.gain.exponentialRampToValueAtTime(0.0001, when + decay);
+  osc.connect(gain); gain.connect(audioCtx.destination);
+  osc.start(when); osc.stop(when + decay + 0.05);
+}
+
+function scheduleLoop(startAt) {
+  if (!musicPlaying) return;
+
+  let mt = 0;
+  for (const [f, b] of MELODY_SEQ) {
+    pluckNote(f, startAt + mt * MBEAT, b, 0.17, false);
+    mt += b;
+  }
+
+  let bt = 0;
+  for (const [f, b] of BASS_SEQ) {
+    pluckNote(f, startAt + bt * MBEAT, b, 0.24, true);
+    bt += b;
+  }
+
+  for (const [beat, freqs] of CHORD_SEQ) {
+    freqs.forEach((f, i) =>
+      pluckNote(f, startAt + beat * MBEAT + i * 0.022, 0.5, 0.07, false)
+    );
+  }
+
+  const loopSec = LOOP_BEATS * MBEAT;
+  musicLoopId = setTimeout(() => scheduleLoop(startAt + loopSec), (loopSec - 0.4) * 1000);
+}
+
+function startMusic() {
+  if (musicPlaying) return;
+  musicPlaying = true;
+  scheduleLoop(audioCtx.currentTime + 0.2);
+}
+
 // ─── STATE ───────────────────────────────────────────────────────────────────
 let state = {
   running: false,
@@ -739,6 +826,7 @@ function justPressed(k) { return keys[k] && !prevKeys[k]; }
 // ─── INIT ────────────────────────────────────────────────────────────────────
 function startGame() {
   initAudio();
+  startMusic();
   document.getElementById('overlay').style.display = 'none';
   Object.keys(keys).forEach(k => keys[k] = false);
   Object.assign(prevKeys, keys);
