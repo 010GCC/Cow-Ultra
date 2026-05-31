@@ -1042,7 +1042,7 @@ function update(dt) {
   enemySpawnTimer -= dt;
   if (enemySpawnTimer <= 0) {
     spawnEnemy();
-    enemySpawnTimer = Math.max(300, 1800 - state.score / 20);
+    enemySpawnTimer = Math.max(300 + (state.speed - 1.5) * 70, 1800 - state.score / 20);
   }
 
   // ── Drop spawn
@@ -1493,17 +1493,18 @@ function fireWeapon() {
   playMilkShot();
   const pu = state.powerup;
   const baseColor = pu === 'toxic' ? '#44ff44' : pu === 'butter' ? '#ffee44' : '#ddeeff';
-  const r = pu === 'supersoaker' ? 8 : pu === 'butter' ? 9 : 6;
+  const r  = pu === 'supersoaker' ? 8 : pu === 'butter' ? 9 : 6;
+  const pv = 8 + (state.speed - 1.5) * 1.2; // projectile speed grows with game speed
 
   if (pu === 'spread') {
     for (let a=-30; a<=30; a+=15) {
       const rad = (a-90)*Math.PI/180;
-      projectiles.push({ x:cow.x, y:cow.y-20, vx:Math.cos(rad)*6, vy:Math.sin(rad)*6, r:5, color:'#aa66ff', enemy:false });
+      projectiles.push({ x:cow.x, y:cow.y-20, vx:Math.cos(rad)*pv*0.75, vy:Math.sin(rad)*pv*0.75, r:5, color:'#aa66ff', enemy:false });
     }
   } else if (pu === 'machinegun') {
-    projectiles.push({ x:cow.x, y:cow.y-20, vx:(Math.random()-0.5)*1.5, vy:-8, r:4, color:'#ffaa00', enemy:false });
+    projectiles.push({ x:cow.x, y:cow.y-20, vx:(Math.random()-0.5)*1.5, vy:-pv, r:4, color:'#ffaa00', enemy:false });
   } else {
-    projectiles.push({ x:cow.x, y:cow.y-20, vx:0, vy:-8, r, color:baseColor, enemy:false });
+    projectiles.push({ x:cow.x, y:cow.y-20, vx:0, vy:-pv, r, color:baseColor, enemy:false });
   }
 }
 
