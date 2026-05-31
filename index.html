@@ -452,7 +452,7 @@ function showTitleScreen() {
       <div style="font-family:'Boogaloo',cursive;font-size:13px;color:#3d1f00;
                   background:rgba(255,235,120,0.6);border-radius:4px;
                   padding:4px 10px;margin-bottom:10px;">
-        A = Charge &nbsp;•&nbsp; B = Dash &nbsp;•&nbsp; C = Milk Blast
+        A = Charge &nbsp;•&nbsp; B = Fart &nbsp;•&nbsp; C = Milk Blast
       </div>
       <div style="font-size:18px;letter-spacing:3px;margin-bottom:10px;">🏡🌿🐓🌿🏡</div>
       <button onclick="showLeaderboard()" style="
@@ -706,7 +706,9 @@ let state = {
   invincible: 0,
   chargeTimer: 0,
   chargeCooldown: 0,
-  dashCooldown: 0,
+  fartMeter: 100,
+  fartHoldTime: 0,
+  fartCloud: null,
   ultraMeter: 0,
   ultraReady: false,
   ultraActive: false,
@@ -944,7 +946,8 @@ function startGame() {
     terrain:'grass', terrainTimer:3000,
     powerup:null, powerupTimer:0,
     flashMsg:null, flashTimer:0,
-    invincible:0, chargeTimer:0, chargeCooldown:0, dashCooldown:0,
+    invincible:0, chargeTimer:0, chargeCooldown:0,
+    fartMeter:100, fartHoldTime:0, fartCloud:null,
     ultraMeter:0, ultraReady:false, ultraActive:false, ultraCycle:0, ultraStart:0, ultraBaseScore:0,
   });
   updateHUD();
@@ -1038,14 +1041,25 @@ function update(dt) {
     playMoo(1.6, 0.5);
   }
 
-  // Dash (B + direction)
-  if (state.dashCooldown > 0) state.dashCooldown -= dt;
-  if (justPressed('b') && state.dashCooldown <= 0 && (keys.left || keys.right)) {
-    const dir = keys.left ? -1 : 1;
-    cow.x += dir * 80;
-    cow.x = Math.max(15, Math.min(385, cow.x));
-    state.dashCooldown = 1200;
-    for (let i=0; i<6; i++) spawnParticle(cow.x, cow.y, '#aaccff', 10);
+  // ── Fart (B)
+  state.fartMeter = Math.min(100, state.fartMeter + dt / 200); // refills over 20s
+  if (keys.b) {
+    state.fartHoldTime += dt;
+  } else if (prevKeys.b && !keys.b) {
+    if (state.fartMeter >= 25) emitFart();
+    state.fartHoldTime = 0;
+  }
+  // Expand + apply fart cloud
+  if (state.fartCloud) {
+    const fc = state.fartCloud;
+    fc.life -= dt;
+    fc.radius = fc.maxRadius * (1 - fc.life / fc.maxLife);
+    enemies.forEach(e => {
+      if (e.dead || e.fleeing) return;
+      const dx = e.x - fc.x, dy = e.y - fc.y;
+      if (Math.sqrt(dx*dx+dy*dy) < fc.radius) { e.fleeing = true; e.fleeTimer = 3000; }
+    });
+    if (fc.life <= 0) state.fartCloud = null;
   }
 
   // ── Milk / powerup firing
@@ -1122,6 +1136,16 @@ function update(dt) {
   // ── Update enemies
   enemies.forEach(e => {
     if (e.stunTimer > 0) { e.stunTimer -= dt; return; }
+    if (e.fleeing) {
+      e.fleeTimer -= dt;
+      e.y -= 4.5 * sp * (dt/16);
+      if (e.y < -60 || e.fleeTimer <= 0) {
+        e.dead = true;
+        addScore(Math.floor(e.type.score * 0.5));
+        spawnParticle(e.x, Math.max(0, e.y), '#44ff66', 6);
+      }
+      return;
+    }
     const dx = cow.x - e.x, dy = cow.y - e.y;
     const dist = Math.sqrt(dx*dx+dy*dy);
     e.x += (dx/dist) * e.type.speed * sp * (dt/16);
@@ -1287,6 +1311,21 @@ function render(ts = 0) {
   // Enemies
   enemies.forEach(e => drawEnemy(e));
 
+  // Fart cloud
+  if (state.fartCloud) {
+    const fc = state.fartCloud;
+    const alpha = (fc.life / fc.maxLife) * 0.55;
+    ctx.globalAlpha = alpha;
+    ctx.strokeStyle = '#44ff66';
+    ctx.lineWidth = 3;
+    ctx.shadowBlur = 18; ctx.shadowColor = '#44ff44';
+    ctx.beginPath(); ctx.arc(fc.x, fc.y, fc.radius, 0, Math.PI*2); ctx.stroke();
+    ctx.fillStyle = '#44ff44';
+    ctx.globalAlpha = alpha * 0.18;
+    ctx.fill();
+    ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+  }
+
   // Cow
   drawCow();
 
@@ -1312,6 +1351,20 @@ function render(ts = 0) {
     ctx.fillStyle = '#ffaa00';
     ctx.fillRect(10, canvas.height-20, 60*pct, 8);
   }
+
+  // Fart meter (bottom right)
+  const fm = state.fartMeter / 100;
+  ctx.fillStyle = 'rgba(0,0,0,0.4)';
+  ctx.fillRect(canvas.width-74, canvas.height-20, 62, 8);
+  ctx.fillStyle = fm > 0.25 ? '#44ff66' : '#ff6644';
+  ctx.shadowBlur = fm > 0 ? 6 : 0; ctx.shadowColor = '#44ff44';
+  ctx.fillRect(canvas.width-74, canvas.height-20, 62*fm, 8);
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = '#44ff88';
+  ctx.font = '5px Press Start 2P, monospace';
+  ctx.textAlign = 'right';
+  ctx.fillText('FART', canvas.width-76, canvas.height-10);
+  ctx.textAlign = 'left';
 }
 
 function drawTerrainAccents() {
@@ -1394,6 +1447,20 @@ function drawCow() {
     ctx.ellipse(0, 0, 20, 16, 0, 0, Math.PI*2);
     ctx.stroke();
     ctx.globalAlpha = 1;
+  }
+
+  // Fart charge glow
+  if (keys.b && state.fartMeter >= 25) {
+    const pct = Math.min(1, state.fartHoldTime / 1200);
+    ctx.strokeStyle = '#44ff66';
+    ctx.lineWidth = 2 + pct * 4;
+    ctx.shadowBlur = 10 + pct * 22;
+    ctx.shadowColor = '#44ff44';
+    ctx.globalAlpha = 0.4 + pct * 0.55;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 22 + pct * 16, 18 + pct * 12, 0, 0, Math.PI*2);
+    ctx.stroke();
+    ctx.shadowBlur = 0; ctx.globalAlpha = 1;
   }
 
   ctx.restore();
@@ -1562,6 +1629,38 @@ function drawStar(cx, cy, pts, r1, r2) {
 }
 
 // ─── GAME ACTIONS ─────────────────────────────────────────────────────────────
+function playFart() {
+  if (!audioCtx) return;
+  try {
+    const t = audioCtx.currentTime;
+    const len = Math.floor(audioCtx.sampleRate * 0.4);
+    const buf = audioCtx.createBuffer(1, len, audioCtx.sampleRate);
+    const d   = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+    const src = audioCtx.createBufferSource();
+    src.buffer = buf;
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = 'bandpass'; filter.Q.value = 4;
+    filter.frequency.setValueAtTime(260, t);
+    filter.frequency.exponentialRampToValueAtTime(90, t + 0.35);
+    const gain = audioCtx.createGain();
+    gain.gain.setValueAtTime(0.9, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+    src.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
+    src.start(t);
+  } catch(e) {}
+}
+
+function emitFart() {
+  const holdPct = Math.min(1, state.fartHoldTime / 1200);
+  const cost    = 30 + holdPct * 20;            // 30–50% per fart
+  const maxR    = Math.min(130, 75 + holdPct * 55); // bigger cloud if held longer
+  state.fartMeter = Math.max(0, state.fartMeter - cost);
+  state.fartCloud = { x:cow.x, y:cow.y, radius:0, maxRadius:maxR, life:700, maxLife:700 };
+  spawnParticle(cow.x, cow.y, '#44ff66', 18);
+  playFart();
+}
+
 function fireWeapon() {
   playMilkShot();
   const pu = state.powerup;
