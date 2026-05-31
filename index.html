@@ -254,7 +254,7 @@
   #ultraMeterWrap { position:absolute;bottom:0;left:0;right:0;height:3px;background:#1a0a00; }
   #ultraMeterFill { height:100%;width:0%;background:#4aff4a;box-shadow:0 0 6px #4aff4a;transition:width 0.2s; }
   #ultraBtn {
-    display:none;position:absolute;bottom:190px;left:50%;transform:translateX(-50%);
+    display:none;position:absolute;bottom:215px;left:50%;transform:translateX(-50%);
     z-index:90;padding:8px 14px;white-space:nowrap;
     background:linear-gradient(180deg,#7ed956,#4a9e1a);
     border:2px solid #a8e04a;border-radius:8px;
@@ -701,6 +701,7 @@ let state = {
   ultraActive: false,
   ultraCycle: 0,
   ultraStart: 0,
+  ultraBaseScore: 0,
 };
 
 let cow, projectiles, enemies, drops, particles, terrainTiles, passives;
@@ -933,7 +934,7 @@ function startGame() {
     powerup:null, powerupTimer:0,
     flashMsg:null, flashTimer:0,
     invincible:0, chargeTimer:0, chargeCooldown:0, dashCooldown:0,
-    ultraMeter:0, ultraReady:false, ultraActive:false, ultraCycle:0, ultraStart:0,
+    ultraMeter:0, ultraReady:false, ultraActive:false, ultraCycle:0, ultraStart:0, ultraBaseScore:0,
   });
   updateHUD();
   requestAnimationFrame(loop);
@@ -1222,7 +1223,8 @@ function update(dt) {
   // ── Ultra meter
   if (!state.ultraReady && !state.ultraActive) {
     const threshold = 5000 + state.ultraCycle * 2500;
-    state.ultraMeter = Math.min(100, (state.score / threshold) * 100);
+    const cycleScore = state.score - state.ultraBaseScore;
+    state.ultraMeter = Math.min(100, (cycleScore / threshold) * 100);
     if (state.ultraMeter >= 100) {
       state.ultraReady = true;
       document.getElementById('ultraBtn').style.display = 'block';
@@ -1752,10 +1754,11 @@ function drawWarp(ts) {
 }
 
 function completeUltra() {
-  state.ultraActive = false;
+  state.ultraActive    = false;
   state.ultraCycle++;
-  state.ultraMeter  = 0;
-  state.ultraReady  = false;
+  state.ultraMeter     = 0;
+  state.ultraReady     = false;
+  state.ultraBaseScore = state.score;
 
   // Reset speed to a slightly higher base each cycle
   state.speed       = Math.min(3.5, 1.5 + state.ultraCycle * 0.25);
