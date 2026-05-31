@@ -254,11 +254,11 @@
   #ultraMeterWrap { position:absolute;bottom:0;left:0;right:0;height:3px;background:#1a0a00; }
   #ultraMeterFill { height:100%;width:0%;background:#4aff4a;box-shadow:0 0 6px #4aff4a;transition:width 0.2s; }
   #ultraBtn {
-    display:none;position:absolute;top:42%;left:50%;transform:translate(-50%,-50%);
-    z-index:90;padding:14px 22px;white-space:nowrap;
+    display:none;position:absolute;bottom:190px;left:50%;transform:translateX(-50%);
+    z-index:90;padding:8px 14px;white-space:nowrap;
     background:linear-gradient(180deg,#7ed956,#4a9e1a);
-    border:3px solid #a8e04a;border-radius:12px;
-    color:#fff;font-family:'Press Start 2P',monospace;font-size:13px;
+    border:2px solid #a8e04a;border-radius:8px;
+    color:#fff;font-family:'Press Start 2P',monospace;font-size:10px;
     cursor:pointer;animation:btnPulse 0.5s ease-in-out infinite,ultraGlow 0.5s ease-in-out infinite;
   }
   @keyframes ultraGlow {
@@ -1221,7 +1221,7 @@ function update(dt) {
 
   // ── Ultra meter
   if (!state.ultraReady && !state.ultraActive) {
-    const threshold = 2000 + state.ultraCycle * 1000;
+    const threshold = 5000 + state.ultraCycle * 2500;
     state.ultraMeter = Math.min(100, (state.score / threshold) * 100);
     if (state.ultraMeter >= 100) {
       state.ultraReady = true;
