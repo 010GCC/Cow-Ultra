@@ -251,8 +251,16 @@
   #startBtn:hover { filter: brightness(1.2); }
 
   #hud { position: relative; }
-  #ultraMeterWrap { position:absolute;bottom:0;left:0;right:0;height:3px;background:#1a0a00; }
-  #ultraMeterFill { height:100%;width:0%;background:#4aff4a;box-shadow:0 0 6px #4aff4a;transition:width 0.2s; }
+  #ultraMeterWrap {
+    position:absolute;bottom:0;left:0;right:0;height:18px;
+    background:#1a0a00;display:flex;flex-direction:column;justify-content:space-between;
+  }
+  #ultraLabel {
+    font-family:'Press Start 2P',monospace;font-size:5px;color:#4aff4a;
+    text-align:center;padding-top:3px;letter-spacing:1px;
+    text-shadow:0 0 5px #4aff4a;
+  }
+  #ultraMeterFill { height:5px;width:0%;background:#4aff4a;box-shadow:0 0 6px #4aff4a;transition:width 0.2s; }
   #ultraBtn {
     display:none;position:absolute;bottom:215px;left:50%;transform:translateX(-50%);
     z-index:90;padding:8px 14px;white-space:nowrap;
@@ -308,7 +316,10 @@
       <div class="hud-label">COMBO</div>
       <div class="hud-value" id="comboDisplay">x1</div>
     </div>
-    <div id="ultraMeterWrap"><div id="ultraMeterFill"></div></div>
+    <div id="ultraMeterWrap">
+      <div id="ultraLabel">ULTRA METER</div>
+      <div id="ultraMeterFill"></div>
+    </div>
   </div>
 
   <div id="controls">
@@ -1759,6 +1770,8 @@ function completeUltra() {
   state.ultraMeter     = 0;
   state.ultraReady     = false;
   state.ultraBaseScore = state.score;
+  const fill = document.getElementById('ultraMeterFill');
+  if (fill) fill.style.width = '0%';
 
   // Reset speed to a slightly higher base each cycle
   state.speed       = Math.min(3.5, 1.5 + state.ultraCycle * 0.25);
