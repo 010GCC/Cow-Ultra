@@ -1606,50 +1606,71 @@ function gameOver() {
   // Show overlay with score + name input + leaderboard
   const ov = document.getElementById('overlay');
   ov.style.display = 'flex';
+  const TAGLINES = [
+    'Udderly defeated.',
+    'The herd will remember.',
+    'Even legends run out of milk.',
+    'Better moo-ves next time!',
+    'The barn is empty tonight.',
+    'Tipped by fate itself.',
+    'The pasture weeps for thee...',
+    'You gave it your best moo.',
+  ];
+  const tagline = TAGLINES[Math.floor(Math.random() * TAGLINES.length)];
+
   ov.style.background = 'linear-gradient(180deg,#0d0a1a 0%,#1a0a00 55%,#0a1200 100%)';
   ov.innerHTML = `
     <div style="text-align:center;width:100%;padding:0 14px;display:flex;flex-direction:column;align-items:center;">
 
-      <div style="font-size:38px;margin-bottom:4px;">💀🐄💀</div>
+      <div style="font-size:20px;letter-spacing:5px;margin-bottom:3px;">🌙⭐✨⭐🌙</div>
 
-      <div style="font-family:'Press Start 2P',monospace;font-size:22px;color:#ff6644;
-                  text-shadow:3px 3px 0 #5a1a00,0 0 22px #ff4400;
-                  line-height:1.45;margin-bottom:10px;">MOO'D<br>OUT!</div>
+      <div style="font-size:40px;display:inline-block;animation:cowFloat 2s ease-in-out infinite;margin-bottom:2px;">😢🐄😢</div>
+
+      <div style="font-family:'Press Start 2P',monospace;font-size:20px;color:#ff8855;
+                  text-shadow:2px 2px 0 #5a1a00,0 0 24px #ff5500;
+                  line-height:1.45;margin-bottom:4px;">MOO'D<br>OUT!</div>
+
+      <div style="font-family:'Boogaloo',cursive;font-size:15px;color:#cc8844;
+                  font-style:italic;margin-bottom:9px;">"${tagline}"</div>
 
       <div style="background:linear-gradient(180deg,#3d2000,#2a1500);border:3px solid #8b5e1a;
-                  border-radius:8px;padding:8px 28px;margin-bottom:12px;width:100%;max-width:270px;box-sizing:border-box;">
-        <div style="font-family:'Press Start 2P',monospace;font-size:8px;color:#8b6a2a;letter-spacing:2px;margin-bottom:4px;">FINAL SCORE</div>
-        <div style="font-family:'Press Start 2P',monospace;font-size:26px;color:#ffe066;text-shadow:0 0 14px #ffaa00;">${state.score}</div>
+                  border-radius:8px;padding:7px 24px;margin-bottom:8px;
+                  width:100%;max-width:270px;box-sizing:border-box;
+                  box-shadow:0 0 18px rgba(255,150,0,0.2);">
+        <div style="font-family:'Boogaloo',cursive;font-size:13px;color:#8b6a2a;letter-spacing:2px;margin-bottom:2px;">FINAL SCORE</div>
+        <div style="font-family:'Press Start 2P',monospace;font-size:28px;color:#ffe066;text-shadow:0 0 16px #ffaa00;">${state.score}</div>
       </div>
 
-      <div style="width:100%;max-width:300px;margin-bottom:8px;">
-        <input id="playerName" type="text" maxlength="12" placeholder="ENTER YOUR NAME"
-               style="width:100%;padding:11px;font-size:16px;text-align:center;
+      <div style="color:#5a3e1b;font-size:11px;margin-bottom:8px;letter-spacing:5px;">━━ ✦ ━━</div>
+
+      <div style="width:100%;max-width:300px;margin-bottom:7px;">
+        <input id="playerName" type="text" maxlength="12" placeholder="YOUR COWBOY NAME"
+               style="width:100%;padding:10px;font-size:16px;text-align:center;
                       background:#1a0d00;border:3px solid #8b5e1a;color:#ffe066;
                       font-family:'Press Start 2P',monospace;border-radius:6px;box-sizing:border-box;">
       </div>
 
       <button id="submitScoreBtn" style="
-        padding:10px 0;margin-bottom:12px;width:100%;max-width:300px;
+        padding:10px 0;margin-bottom:9px;width:100%;max-width:300px;
         background:linear-gradient(180deg,#7ed956,#4a9e1a);
         border:3px solid #a8e04a;border-radius:8px;
         color:#fff;font-family:'Press Start 2P',monospace;font-size:10px;
         cursor:pointer;box-shadow:0 4px 0 #2d6010;">🏆 SUBMIT TO LEADERBOARD</button>
 
-      <div id="leaderboardContainer" style="width:100%;max-width:320px;
-           background:rgba(0,0,0,0.45);border:2px solid #5a3e1b;
-           padding:8px 10px;border-radius:8px;margin-bottom:12px;">
-        <div style="font-family:'Boogaloo',cursive;font-size:15px;color:#ffaa00;
-                     text-align:center;margin-bottom:5px;">🌍 TOP COWS 🌍</div>
+      <div id="leaderboardContainer" style="width:100%;max-width:300px;
+           background:rgba(0,0,0,0.4);border:2px solid #5a3e1b;
+           padding:7px 10px;border-radius:8px;margin-bottom:10px;">
+        <div style="font-family:'Boogaloo',cursive;font-size:14px;color:#ffaa00;
+                     text-align:center;margin-bottom:4px;">🌍 TOP COWS 🌍</div>
         <div id="leaderboardList" style="font-family:'Press Start 2P',monospace;font-size:9px;
-                                          line-height:1.9;color:#ccc;"></div>
+                                          line-height:1.8;color:#ccc;"></div>
       </div>
 
       <button onclick="startGame()" style="
-        padding:13px 28px;
+        padding:12px 28px;
         background:linear-gradient(180deg,#7ed956,#4a9e1a);
         border:3px solid #a8e04a;border-radius:10px;
-        color:#fff;font-family:'Press Start 2P',monospace;font-size:12px;
+        color:#fff;font-family:'Press Start 2P',monospace;font-size:13px;
         cursor:pointer;box-shadow:0 5px 0 #2d6010;
         animation:btnPulse 1.6s ease-in-out infinite;">🐄 MOO AGAIN!</button>
     </div>
