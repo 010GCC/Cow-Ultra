@@ -250,6 +250,21 @@
   }
   #startBtn:hover { filter: brightness(1.2); }
 
+  #hud { position: relative; }
+  #ultraMeterWrap { position:absolute;bottom:0;left:0;right:0;height:3px;background:#1a0a00; }
+  #ultraMeterFill { height:100%;width:0%;background:#4aff4a;box-shadow:0 0 6px #4aff4a;transition:width 0.2s; }
+  #ultraBtn {
+    display:none;position:absolute;top:42%;left:50%;transform:translate(-50%,-50%);
+    z-index:90;padding:14px 22px;white-space:nowrap;
+    background:linear-gradient(180deg,#7ed956,#4a9e1a);
+    border:3px solid #a8e04a;border-radius:12px;
+    color:#fff;font-family:'Press Start 2P',monospace;font-size:13px;
+    cursor:pointer;animation:btnPulse 0.5s ease-in-out infinite,ultraGlow 0.5s ease-in-out infinite;
+  }
+  @keyframes ultraGlow {
+    0%,100% { box-shadow:0 5px 0 #2d6010,0 0 12px #4aff4a; }
+    50%      { box-shadow:0 5px 0 #2d6010,0 0 35px #4aff4a,0 0 60px #fff; }
+  }
   @keyframes cowFloat {
     0%,100% { transform: translateY(0) rotate(-3deg); }
     50%      { transform: translateY(-10px) rotate(3deg); }
@@ -293,6 +308,7 @@
       <div class="hud-label">COMBO</div>
       <div class="hud-value" id="comboDisplay">x1</div>
     </div>
+    <div id="ultraMeterWrap"><div id="ultraMeterFill"></div></div>
   </div>
 
   <div id="controls">
@@ -312,6 +328,8 @@
       <div id="actionOverlay"></div>
     </div>
   </div>
+
+  <button id="ultraBtn" onclick="goUltra()">⚡ GO ULTRA!! ⚡</button>
 
  <div id="overlay">
   <h1>COW<br>ULTRA</h1>
@@ -678,6 +696,11 @@ let state = {
   chargeTimer: 0,
   chargeCooldown: 0,
   dashCooldown: 0,
+  ultraMeter: 0,
+  ultraReady: false,
+  ultraActive: false,
+  ultraCycle: 0,
+  ultraStart: 0,
 };
 
 let cow, projectiles, enemies, drops, particles, terrainTiles, passives;
@@ -902,6 +925,7 @@ function startGame() {
   terrainTiles = initTerrain();
   submittedName = null;
   waveCount = 0; wavePauseTimer = 0;
+  document.getElementById('ultraBtn').style.display = 'none';
   Object.assign(state, {
     running:true, score:0, lives:3, combo:1, comboTimer:0,
     speed:1.5, speedTimer:0,
@@ -909,6 +933,7 @@ function startGame() {
     powerup:null, powerupTimer:0,
     flashMsg:null, flashTimer:0,
     invincible:0, chargeTimer:0, chargeCooldown:0, dashCooldown:0,
+    ultraMeter:0, ultraReady:false, ultraActive:false, ultraCycle:0, ultraStart:0,
   });
   updateHUD();
   requestAnimationFrame(loop);
@@ -935,11 +960,11 @@ let waveCount = 0;
 let wavePauseTimer = 0;
 
 function loop(ts) {
-  if (!state.running) return;
+  if (!state.running && !state.ultraActive) return;
   const dt = Math.min(ts - last, 50);
   last = ts;
-  update(dt);
-  render();
+  if (!state.ultraActive) update(dt);
+  render(ts);
   Object.assign(prevKeys, keys);
   requestAnimationFrame(loop);
 }
@@ -1193,11 +1218,23 @@ function update(dt) {
 
   // ── Score scroll bonus
   state.score += Math.floor(sp * dt / 800);
+
+  // ── Ultra meter
+  if (!state.ultraReady && !state.ultraActive) {
+    const threshold = 2000 + state.ultraCycle * 1000;
+    state.ultraMeter = Math.min(100, (state.score / threshold) * 100);
+    if (state.ultraMeter >= 100) {
+      state.ultraReady = true;
+      document.getElementById('ultraBtn').style.display = 'block';
+    }
+  }
+
   updateHUD();
 }
 
 // ─── RENDER ───────────────────────────────────────────────────────────────────
-function render() {
+function render(ts = 0) {
+  if (state.ultraActive) { drawWarp(ts); return; }
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   // Terrain
@@ -1595,6 +1632,8 @@ function showFlash(msg) {
 
 function updateHUD() {
   document.getElementById('scoreDisplay').textContent = state.score;
+  const fill = document.getElementById('ultraMeterFill');
+  if (fill) fill.style.width = state.ultraMeter + '%';
   document.getElementById('comboDisplay').textContent = 'x'+state.combo;
   const livesEl = document.getElementById('livesDisplay');
   const quarters = Math.round(state.lives * 4);
@@ -1616,6 +1655,126 @@ function updateHUD() {
   } else {
     puEl.textContent = 'NONE';
   }
+}
+
+// ─── ULTRA ───────────────────────────────────────────────────────────────────
+const ULTRA_DURATION = 3500;
+
+function playUltraSound() {
+  if (!audioCtx) return;
+  try {
+    const t = audioCtx.currentTime;
+    [261, 330, 392, 523, 659, 784, 1047].forEach((freq, i) => {
+      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.type = 'square'; o.frequency.value = freq;
+      g.gain.setValueAtTime(0, t + i*0.1);
+      g.gain.linearRampToValueAtTime(0.25, t + i*0.1 + 0.05);
+      g.gain.exponentialRampToValueAtTime(0.001, t + i*0.1 + 0.28);
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start(t + i*0.1); o.stop(t + i*0.1 + 0.3);
+    });
+    const wo = audioCtx.createOscillator(), wg = audioCtx.createGain();
+    wo.type = 'sine';
+    wo.frequency.setValueAtTime(200, t + 0.8);
+    wo.frequency.exponentialRampToValueAtTime(2400, t + 3.4);
+    wg.gain.setValueAtTime(0.28, t + 0.8); wg.gain.setValueAtTime(0.28, t + 3.0);
+    wg.gain.exponentialRampToValueAtTime(0.001, t + 3.5);
+    wo.connect(wg); wg.connect(audioCtx.destination);
+    wo.start(t + 0.8); wo.stop(t + 3.6);
+  } catch(e) {}
+}
+
+function goUltra() {
+  if (!state.ultraReady || state.ultraActive) return;
+  state.ultraActive = true;
+  state.ultraStart  = performance.now();
+  state.ultraReady  = false;
+  document.getElementById('ultraBtn').style.display = 'none';
+  playUltraSound();
+}
+
+function drawWarp(ts) {
+  const progress = Math.min(1, (ts - state.ultraStart) / ULTRA_DURATION);
+  const cx = canvas.width / 2, cy = canvas.height / 2;
+
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Colorful warp streaks
+  const num = 90;
+  for (let i = 0; i < num; i++) {
+    const angle = (i / num) * Math.PI * 2;
+    const hue   = (i / num * 360 + ts * 0.15) % 360;
+    const near  = 15 + progress * 25;
+    const far   = 50 + progress * canvas.height * 1.1;
+    ctx.strokeStyle = `hsl(${hue},100%,${55 + progress*25}%)`;
+    ctx.lineWidth   = 1.5 + progress * 3;
+    ctx.globalAlpha = 0.35 + progress * 0.65;
+    ctx.beginPath();
+    ctx.moveTo(cx + Math.cos(angle) * near, cy + Math.sin(angle) * near);
+    ctx.lineTo(cx + Math.cos(angle) * far,  cy + Math.sin(angle) * far);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+
+  // Stars
+  for (let i = 0; i < 28; i++) {
+    const sx = (Math.sin(i * 7.31 + ts * 0.0012) * 0.5 + 0.5) * canvas.width;
+    const sy = (Math.cos(i * 5.71 + ts * 0.0018) * 0.5 + 0.5) * canvas.height;
+    ctx.fillStyle = '#fff';
+    ctx.globalAlpha = 0.4 + Math.sin(ts * 0.01 + i) * 0.4;
+    ctx.beginPath(); ctx.arc(sx, sy, 1.5, 0, Math.PI*2); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  // Text
+  const pulse = Math.sin(ts * 0.009) * 0.35 + 0.65;
+  ctx.globalAlpha = pulse;
+  ctx.shadowBlur = 22; ctx.shadowColor = '#4aff4a';
+  ctx.fillStyle = '#fff';
+  ctx.font = '15px Press Start 2P, monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('🐄 GOING ULTRA!! 🐄', cx, cy - 12);
+  ctx.font = '9px Press Start 2P, monospace';
+  ctx.fillStyle = '#4aff4a';
+  ctx.fillText(`CYCLE ${state.ultraCycle + 1}`, cx, cy + 16);
+  ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+
+  // White flash at end
+  if (progress > 0.85) {
+    ctx.fillStyle = '#fff';
+    ctx.globalAlpha = (progress - 0.85) / 0.15;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.globalAlpha = 1;
+  }
+
+  if (progress >= 1) completeUltra();
+}
+
+function completeUltra() {
+  state.ultraActive = false;
+  state.ultraCycle++;
+  state.ultraMeter  = 0;
+  state.ultraReady  = false;
+
+  // Reset speed to a slightly higher base each cycle
+  state.speed       = Math.min(3.5, 1.5 + state.ultraCycle * 0.25);
+  state.speedTimer  = 0;
+
+  // Clear screen and reset spawns
+  enemies = []; projectiles = []; passives = [];
+  waveCount = 0; wavePauseTimer = 0; enemySpawnTimer = 800;
+
+  // New random terrain for the "new farm"
+  const newTerrain = TERRAIN_ORDER[Math.floor(Math.random() * TERRAIN_ORDER.length)];
+  state.terrain = newTerrain;
+  const T = TERRAINS[newTerrain];
+  terrainTiles.forEach(t => { t.color = Math.random() > 0.5 ? T.bg : T.accent; });
+  state.terrainTimer = 15000;
+
+  state.running = true;
+  showFlash(`🐄 CYCLE ${state.ultraCycle}!`);
+  updateHUD();
 }
 
 function gameOver() {
