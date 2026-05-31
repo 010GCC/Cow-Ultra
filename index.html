@@ -1384,10 +1384,10 @@ function render(ts = 0) {
       ctx.globalAlpha = 1;
     }
 
-    ctx.fillStyle = ready ? `hsl(${(ts * 0.25) % 360},100%,70%)` : '#cc88ff';
+    ctx.fillStyle = '#ffffff';
     ctx.font = '5px Press Start 2P, monospace';
     ctx.textAlign = 'left';
-    ctx.fillText('ULTRA', MX + 2, canvas.height-10);
+    ctx.fillText('ULTRA', MX + MW + 2, canvas.height-10);
   }
 }
 
