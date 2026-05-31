@@ -1596,6 +1596,7 @@ function updateHUD() {
 
 function gameOver() {
   state.running = false;
+  playMoo(0.6, 0.7);
 
   // Show overlay with score + name input + leaderboard
   const ov = document.getElementById('overlay');
