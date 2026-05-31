@@ -901,6 +901,7 @@ function startGame() {
   passives = [];
   terrainTiles = initTerrain();
   submittedName = null;
+  waveCount = 0; wavePauseTimer = 0;
   Object.assign(state, {
     running:true, score:0, lives:3, combo:1, comboTimer:0,
     speed:1.5, speedTimer:0,
@@ -930,6 +931,8 @@ let milkTimer = 0;
 let enemySpawnTimer = 0;
 let dropSpawnTimer = 0;
 let passiveTimer = 0;
+let waveCount = 0;
+let wavePauseTimer = 0;
 
 function loop(ts) {
   if (!state.running) return;
@@ -1010,7 +1013,7 @@ function update(dt) {
 
   // ── Milk / powerup firing
   milkTimer -= dt;
-  const fireRate = state.powerup === 'machinegun' ? 120 : state.powerup === 'supersoaker' ? 180 : 350;
+  const fireRate = state.powerup === 'machinegun' ? 100 : state.powerup === 'supersoaker' ? 140 : 240;
   if (keys.c && milkTimer <= 0) {
     milkTimer = fireRate;
     fireWeapon();
@@ -1038,11 +1041,31 @@ function update(dt) {
   // ── Invincibility frames
   if (state.invincible > 0) state.invincible -= dt;
 
-  // ── Enemy spawn
-  enemySpawnTimer -= dt;
-  if (enemySpawnTimer <= 0) {
-    spawnEnemy();
-    enemySpawnTimer = Math.max(300 + (state.speed - 1.5) * 70, 1800 - state.score / 20);
+  // ── Enemy spawn — wave mode kicks in at speed >= 3.5
+  if (state.speed >= 3.5) {
+    if (wavePauseTimer > 0) {
+      wavePauseTimer -= dt;
+    } else {
+      enemySpawnTimer -= dt;
+      if (enemySpawnTimer <= 0) {
+        spawnEnemy();
+        waveCount++;
+        const waveSize = 3 + Math.floor(Math.random() * 2); // 3–4 per wave
+        if (waveCount >= waveSize) {
+          wavePauseTimer = 2200 + Math.random() * 1200; // 2.2–3.4s pause
+          waveCount = 0;
+          enemySpawnTimer = 600;
+        } else {
+          enemySpawnTimer = 220; // rapid burst within wave
+        }
+      }
+    }
+  } else {
+    enemySpawnTimer -= dt;
+    if (enemySpawnTimer <= 0) {
+      spawnEnemy();
+      enemySpawnTimer = Math.max(440 + (state.speed - 1.5) * 100, 1800 - state.score / 14);
+    }
   }
 
   // ── Drop spawn
@@ -1494,7 +1517,7 @@ function fireWeapon() {
   const pu = state.powerup;
   const baseColor = pu === 'toxic' ? '#44ff44' : pu === 'butter' ? '#ffee44' : '#ddeeff';
   const r  = pu === 'supersoaker' ? 8 : pu === 'butter' ? 9 : 6;
-  const pv = 8 + (state.speed - 1.5) * 1.2;
+  const pv = 11 + (state.speed - 1.5) * 1.5;
 
   if (pu === 'spread') {
     for (let a=-30; a<=30; a+=15) {
