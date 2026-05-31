@@ -948,7 +948,7 @@ function update(dt) {
   state.speedTimer += dt;
   if (state.speedTimer > 8000) {
     state.speedTimer = 0;
-    state.speed = Math.min(state.speed + 0.08, 6);
+    state.speed = Math.min(state.speed + 0.08, 4.5);
   }
 
   // ── Terrain scrolling
@@ -1080,14 +1080,19 @@ function update(dt) {
     // Scroll off screen
     if (e.y > canvas.height + 60) e.dead = true;
 
-    // Hit cow
-    if (!e.dead && state.invincible <= 0 && dist < 22 + (e.type.size/2)) {
-      e.dead = true;
-      if (state.chargeTimer > 0) {
+    // Hit cow — enemy always takes contact damage; cow only when not invincible/charging
+    if (!e.dead && dist < 22 + (e.type.size/2)) {
+      e.hp--;
+      spawnParticle(e.x, e.y, e.type.color, 5);
+      if (e.hp <= 0) {
+        e.dead = true;
         addScore(e.type.score);
-        spawnParticle(e.x, e.y, e.type.color, 12);
+        spawnParticle(e.x, e.y, e.type.color, 10);
         if (e.type.shape === 'human') healPlayer(0.25);
       } else {
+        e.stunTimer = 500;
+      }
+      if (state.invincible <= 0 && state.chargeTimer <= 0) {
         takeDamage(0.5);
       }
     }
