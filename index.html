@@ -251,16 +251,6 @@
   #startBtn:hover { filter: brightness(1.2); }
 
   #hud { position: relative; }
-  #ultraMeterWrap {
-    position:absolute;bottom:0;left:0;right:0;height:18px;
-    background:#1a0a00;display:flex;flex-direction:column;justify-content:space-between;
-  }
-  #ultraLabel {
-    font-family:'Press Start 2P',monospace;font-size:5px;color:#4aff4a;
-    text-align:center;padding-top:3px;letter-spacing:1px;
-    text-shadow:0 0 5px #4aff4a;
-  }
-  #ultraMeterFill { height:5px;width:0%;background:#4aff4a;box-shadow:0 0 6px #4aff4a;transition:width 0.2s; }
   #ultraBtn {
     display:none;position:absolute;bottom:215px;left:50%;transform:translateX(-50%);
     z-index:90;padding:8px 14px;white-space:nowrap;
@@ -315,10 +305,6 @@
     <div class="hud-item">
       <div class="hud-label">COMBO</div>
       <div class="hud-value" id="comboDisplay">x1</div>
-    </div>
-    <div id="ultraMeterWrap">
-      <div id="ultraLabel">ULTRA METER</div>
-      <div id="ultraMeterFill"></div>
     </div>
   </div>
 
@@ -1365,6 +1351,43 @@ function render(ts = 0) {
   ctx.textAlign = 'right';
   ctx.fillText('FART', canvas.width-76, canvas.height-10);
   ctx.textAlign = 'left';
+
+  // Ultra meter (bottom left) — rainbow, blinks+glows when full
+  {
+    const um = state.ultraMeter / 100;
+    const ready = state.ultraReady;
+    const MX = 10, MY = canvas.height-34, MW = 62, MH = 8;
+
+    ctx.fillStyle = 'rgba(0,0,0,0.4)';
+    ctx.fillRect(MX, MY, MW, MH);
+
+    if (um > 0) {
+      const rainbowGrad = ctx.createLinearGradient(MX, 0, MX + MW, 0);
+      rainbowGrad.addColorStop(0,    '#ff0000');
+      rainbowGrad.addColorStop(0.17, '#ff8800');
+      rainbowGrad.addColorStop(0.33, '#ffff00');
+      rainbowGrad.addColorStop(0.50, '#00ff44');
+      rainbowGrad.addColorStop(0.67, '#0088ff');
+      rainbowGrad.addColorStop(0.83, '#8800ff');
+      rainbowGrad.addColorStop(1,    '#ff00ff');
+
+      if (ready) {
+        const blink = Math.sin(ts * 0.012) * 0.5 + 0.5;
+        ctx.globalAlpha = 0.55 + blink * 0.45;
+        ctx.shadowBlur  = 8 + blink * 24;
+        ctx.shadowColor = `hsl(${(ts * 0.25) % 360},100%,60%)`;
+      }
+
+      ctx.fillStyle = rainbowGrad;
+      ctx.fillRect(MX, MY, MW * um, MH);
+      ctx.shadowBlur  = 0;
+      ctx.globalAlpha = 1;
+    }
+
+    ctx.fillStyle = ready ? `hsl(${(ts * 0.25) % 360},100%,70%)` : '#cc88ff';
+    ctx.font = '5px Press Start 2P, monospace';
+    ctx.fillText('ULTRA', MX, canvas.height-24);
+  }
 }
 
 function drawTerrainAccents() {
@@ -1744,8 +1767,6 @@ function showFlash(msg) {
 
 function updateHUD() {
   document.getElementById('scoreDisplay').textContent = state.score;
-  const fill = document.getElementById('ultraMeterFill');
-  if (fill) fill.style.width = state.ultraMeter + '%';
   document.getElementById('comboDisplay').textContent = 'x'+state.combo;
   const livesEl = document.getElementById('livesDisplay');
   const quarters = Math.round(state.lives * 4);
@@ -1869,9 +1890,6 @@ function completeUltra() {
   state.ultraMeter     = 0;
   state.ultraReady     = false;
   state.ultraBaseScore = state.score;
-  const fill = document.getElementById('ultraMeterFill');
-  if (fill) fill.style.width = '0%';
-
   // Reset speed to a slightly higher base each cycle
   state.speed       = Math.min(3.5, 1.5 + state.ultraCycle * 0.25);
   state.speedTimer  = 0;
