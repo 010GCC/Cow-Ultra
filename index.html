@@ -249,6 +249,20 @@
     letter-spacing: 1px;
   }
   #startBtn:hover { filter: brightness(1.2); }
+
+  @keyframes cowFloat {
+    0%,100% { transform: translateY(0) rotate(-3deg); }
+    50%      { transform: translateY(-10px) rotate(3deg); }
+  }
+  @keyframes sunSpin {
+    0%   { transform: rotate(0deg) scale(1); }
+    50%  { transform: rotate(180deg) scale(1.1); }
+    100% { transform: rotate(360deg) scale(1); }
+  }
+  @keyframes btnPulse {
+    0%,100% { transform: scale(1);    box-shadow: 0 5px 0 #2d6010, 0 7px 20px rgba(80,180,0,0.4); }
+    50%      { transform: scale(1.05); box-shadow: 0 5px 0 #2d6010, 0 9px 26px rgba(80,220,0,0.6); }
+  }
 </style>
 
 <!-- 🔥 Firebase SDK (Realtime Database - compat version for single-file games) -->
@@ -385,19 +399,46 @@ async function getTopScores() {
 function showTitleScreen() {
   const ov = document.getElementById('overlay');
   ov.style.display = 'flex';
+  ov.style.background = 'linear-gradient(180deg,#7ec8e3 0%,#b8daf0 22%,#f5e67a 48%,#c8e86a 62%,#4a9e4a 78%,#2d7a2d 100%)';
   ov.innerHTML = `
-    <h1>COW<br>ULTRA</h1>
-    <p>🐄 Endless Bovine Survival 🐄</p>
-    <p style="font-size:13px; color:#aaa; margin-top:8px;">A = Charge &nbsp; B = Dash &nbsp; C = Milk Blast</p>
-    <p style="font-size:13px; color:#aaa;">D-Pad = Move</p>
-    <button id="startBtn" onclick="startGame()" style="margin-top:20px; margin-bottom:15px; padding:14px 30px; background:radial-gradient(circle,#e84040,#8b1a1a); border:3px solid #ff6666; border-radius:8px; color:#fff; font-family:'Press Start 2P',monospace; font-size:13px; cursor:pointer; box-shadow:0 4px 0 #5a0f0f; letter-spacing:1px;">START GAME</button>
-    <button onclick="showLeaderboard()" style="padding:10px 25px; background:#2a1500; border:3px solid #8b5e1a; color:#ffe066; font-family:'Press Start 2P',monospace; font-size:12px; cursor:pointer;">🌍 GLOBAL LEADERBOARD</button>
+    <div style="text-align:center;width:100%;padding:0 12px;display:flex;flex-direction:column;align-items:center;">
+      <div style="font-size:30px;display:inline-block;animation:sunSpin 10s linear infinite;margin-bottom:2px;">☀️</div>
+      <div style="font-size:20px;letter-spacing:4px;margin-bottom:4px;">🌾🌻🌾🌻🌾</div>
+      <div style="font-size:52px;display:inline-block;animation:cowFloat 2.2s ease-in-out infinite;line-height:1;margin-bottom:2px;">🐄</div>
+      <div style="font-family:'Press Start 2P',monospace;font-size:24px;color:#fff;
+                  text-shadow:3px 3px 0 #3d1f00,0 0 28px #ff9900;
+                  line-height:1.5;margin-bottom:6px;">COW<br>ULTRA</div>
+      <div style="font-family:'Boogaloo',cursive;font-size:16px;color:#3d1f00;
+                  background:rgba(255,235,120,0.75);border-radius:5px;
+                  padding:3px 12px;margin-bottom:4px;">🐄 ENDLESS BOVINE SURVIVAL 🐄</div>
+      <div style="font-family:'Boogaloo',cursive;font-size:15px;color:#5a2d00;
+                  font-style:italic;margin-bottom:16px;">"MOO or be MOOED!"</div>
+      <button onclick="startGame()" style="
+        padding:14px 28px;margin-bottom:12px;
+        background:linear-gradient(180deg,#7ed956,#4a9e1a);
+        border:3px solid #a8e04a;border-radius:10px;
+        color:#fff;font-family:'Press Start 2P',monospace;font-size:13px;
+        cursor:pointer;letter-spacing:1px;
+        animation:btnPulse 1.6s ease-in-out infinite;">🐄 START GAME 🐄</button>
+      <div style="font-family:'Boogaloo',cursive;font-size:13px;color:#3d1f00;
+                  background:rgba(255,235,120,0.6);border-radius:4px;
+                  padding:4px 10px;margin-bottom:10px;">
+        A = Charge &nbsp;•&nbsp; B = Dash &nbsp;•&nbsp; C = Milk Blast
+      </div>
+      <div style="font-size:18px;letter-spacing:3px;margin-bottom:10px;">🏡🌿🐓🌿🏡</div>
+      <button onclick="showLeaderboard()" style="
+        padding:8px 20px;background:rgba(61,32,0,0.65);
+        border:2px solid #8b5e1a;color:#ffe066;
+        font-family:'Press Start 2P',monospace;font-size:10px;
+        cursor:pointer;border-radius:6px;">🌍 LEADERBOARD</button>
+    </div>
   `;
 }
 
 async function showLeaderboard() {
   const ov = document.getElementById('overlay');
   ov.style.display = 'flex';
+  ov.style.background = 'rgba(0,0,0,0.88)';
   ov.innerHTML = `
     <h1 style="margin-bottom:20px;">🌍 GLOBAL TOP 10 🌍</h1>
     <div id="lbContainer" style="width:100%; max-width:340px; background:rgba(0,0,0,0.7); border:3px solid #8b5e1a; padding:15px; border-radius:8px; font-family:'Press Start 2P',monospace; font-size:12px;"></div>
@@ -1539,6 +1580,7 @@ function gameOver() {
   // Show overlay with score + name input + leaderboard
   const ov = document.getElementById('overlay');
   ov.style.display = 'flex';
+  ov.style.background = 'rgba(0,0,0,0.88)';
   ov.innerHTML = `
     <h1>MOO'D<br>OUT</h1>
     <p style="font-size:24px; color:#ffe066; margin:10px 0;">FINAL SCORE<br><span id="finalScore" style="font-size:32px;">${state.score}</span></p>
@@ -1627,6 +1669,9 @@ async function loadLeaderboard() {
   }
   listEl2.innerHTML = html;
 }
+
+// Apply farm title screen on first load
+showTitleScreen();
 </script>
 </body>
 </html>
