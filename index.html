@@ -33,7 +33,7 @@
     border: 3px solid #5a3e1b;
     box-shadow: 0 0 40px rgba(255,180,0,0.3);
     touch-action: none;
-    transform: translateY(-50px);
+    transform: translateY(25px);
   }
 
   #gameCanvas {
@@ -1329,13 +1329,13 @@ function render(ts = 0) {
     ctx.globalAlpha = 1;
   }
 
-  // Charge indicator
+  // Charge indicator (moved up to clear ultra meter)
   if (state.chargeCooldown > 0) {
     const pct = 1 - state.chargeCooldown/2500;
     ctx.fillStyle = 'rgba(0,0,0,0.4)';
-    ctx.fillRect(10, canvas.height-20, 60, 8);
+    ctx.fillRect(10, canvas.height-34, 60, 8);
     ctx.fillStyle = '#ffaa00';
-    ctx.fillRect(10, canvas.height-20, 60*pct, 8);
+    ctx.fillRect(10, canvas.height-34, 60*pct, 8);
   }
 
   // Fart meter (bottom right)
@@ -1352,11 +1352,11 @@ function render(ts = 0) {
   ctx.fillText('FART', canvas.width-76, canvas.height-10);
   ctx.textAlign = 'left';
 
-  // Ultra meter (bottom left) — rainbow, blinks+glows when full
+  // Ultra meter (bottom left) — mirrors fart meter, rainbow gradient, blinks+glows when full
   {
     const um = state.ultraMeter / 100;
     const ready = state.ultraReady;
-    const MX = 10, MY = canvas.height-34, MW = 62, MH = 8;
+    const MX = 10, MY = canvas.height-20, MW = 62, MH = 8;
 
     ctx.fillStyle = 'rgba(0,0,0,0.4)';
     ctx.fillRect(MX, MY, MW, MH);
@@ -1386,7 +1386,8 @@ function render(ts = 0) {
 
     ctx.fillStyle = ready ? `hsl(${(ts * 0.25) % 360},100%,70%)` : '#cc88ff';
     ctx.font = '5px Press Start 2P, monospace';
-    ctx.fillText('ULTRA', MX, canvas.height-24);
+    ctx.textAlign = 'left';
+    ctx.fillText('ULTRA', MX + 2, canvas.height-10);
   }
 }
 
