@@ -438,21 +438,39 @@ function showTitleScreen() {
 async function showLeaderboard() {
   const ov = document.getElementById('overlay');
   ov.style.display = 'flex';
-  ov.style.background = 'rgba(0,0,0,0.88)';
+  ov.style.background = 'linear-gradient(180deg,#0d0a1a 0%,#1a0a00 55%,#0a1200 100%)';
   ov.innerHTML = `
-    <h1 style="margin-bottom:20px;">🌍 GLOBAL TOP 10 🌍</h1>
-    <div id="lbContainer" style="width:100%; max-width:340px; background:rgba(0,0,0,0.7); border:3px solid #8b5e1a; padding:15px; border-radius:8px; font-family:'Press Start 2P',monospace; font-size:12px;"></div>
-    <button onclick="showTitleScreen()" style="margin-top:25px; padding:12px 30px; background:#2a1500; border:3px solid #8b5e1a; color:#ffe066; font-family:'Press Start 2P',monospace; font-size:11px; cursor:pointer;">BACK TO TITLE</button>
+    <div style="text-align:center;width:100%;padding:0 14px;display:flex;flex-direction:column;align-items:center;">
+      <div style="font-size:26px;margin-bottom:4px;">🏆🐄🏆</div>
+      <div style="font-family:'Press Start 2P',monospace;font-size:17px;color:#ffe066;
+                  text-shadow:2px 2px 0 #5a3e1b,0 0 18px #ffaa00;margin-bottom:3px;">TOP COWS</div>
+      <div style="font-family:'Boogaloo',cursive;font-size:14px;color:#8b6a2a;margin-bottom:14px;">
+        🌍 GLOBAL PASTURE RANKINGS 🌍</div>
+      <div id="lbContainer" style="width:100%;max-width:340px;
+           background:linear-gradient(180deg,#2a1500,#1a0d00);
+           border:3px solid #8b5e1a;padding:12px;border-radius:8px;
+           font-family:'Press Start 2P',monospace;font-size:11px;"></div>
+      <button onclick="showTitleScreen()" style="
+        margin-top:18px;padding:11px 28px;
+        background:linear-gradient(180deg,#7ed956,#4a9e1a);
+        border:3px solid #a8e04a;border-radius:8px;
+        color:#fff;font-family:'Press Start 2P',monospace;font-size:11px;
+        cursor:pointer;box-shadow:0 4px 0 #2d6010;">🏠 BACK TO BARN</button>
+    </div>
   `;
   initFirebase();
   const container = document.getElementById('lbContainer');
-  container.innerHTML = '<div style="text-align:center;color:#aaa;">LOADING...</div>';
+  container.innerHTML = '<div style="text-align:center;color:#888;font-size:10px;">LOADING TOP COWS...</div>';
   const scores = await getTopScores();
+  const medals = ['🥇','🥈','🥉'];
   let html = '';
-  scores.forEach((s,i) => {
-    html += `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #5a3e1b;">${i+1}. ${s.name}<span>${s.score}</span></div>`;
+  scores.forEach((s, i) => {
+    const rank = i < 3 ? medals[i] : `${i+1}.`;
+    html += `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #5a3e1b;">
+               <span>${rank} ${s.name}</span><span style="color:#ffe066;">${s.score}</span>
+             </div>`;
   });
-  container.innerHTML = html || '<div style="text-align:center;color:#666;">No scores yet!</div>';
+  container.innerHTML = html || '<div style="text-align:center;color:#666;">No scores yet — be the first!</div>';
 }
 
 // ─── AUDIO ───────────────────────────────────────────────────────────────────
@@ -1580,30 +1598,53 @@ function gameOver() {
   // Show overlay with score + name input + leaderboard
   const ov = document.getElementById('overlay');
   ov.style.display = 'flex';
-  ov.style.background = 'rgba(0,0,0,0.88)';
+  ov.style.background = 'linear-gradient(180deg,#0d0a1a 0%,#1a0a00 55%,#0a1200 100%)';
   ov.innerHTML = `
-    <h1>MOO'D<br>OUT</h1>
-    <p style="font-size:24px; color:#ffe066; margin:10px 0;">FINAL SCORE<br><span id="finalScore" style="font-size:32px;">${state.score}</span></p>
-    
-    <div style="margin:15px 0; width:100%; max-width:320px;">
-      <input id="playerName" type="text" maxlength="12" placeholder="YOUR NAME" 
-             style="width:100%; padding:12px; font-size:16px; text-align:center; background:#1a0d00; border:3px solid #8b5e1a; color:#ffe066; font-family:'Press Start 2P',monospace;">
+    <div style="text-align:center;width:100%;padding:0 14px;display:flex;flex-direction:column;align-items:center;">
+
+      <div style="font-size:38px;margin-bottom:4px;">💀🐄💀</div>
+
+      <div style="font-family:'Press Start 2P',monospace;font-size:22px;color:#ff6644;
+                  text-shadow:3px 3px 0 #5a1a00,0 0 22px #ff4400;
+                  line-height:1.45;margin-bottom:10px;">MOO'D<br>OUT!</div>
+
+      <div style="background:linear-gradient(180deg,#3d2000,#2a1500);border:3px solid #8b5e1a;
+                  border-radius:8px;padding:8px 28px;margin-bottom:12px;width:100%;max-width:270px;box-sizing:border-box;">
+        <div style="font-family:'Press Start 2P',monospace;font-size:8px;color:#8b6a2a;letter-spacing:2px;margin-bottom:4px;">FINAL SCORE</div>
+        <div style="font-family:'Press Start 2P',monospace;font-size:26px;color:#ffe066;text-shadow:0 0 14px #ffaa00;">${state.score}</div>
+      </div>
+
+      <div style="width:100%;max-width:300px;margin-bottom:8px;">
+        <input id="playerName" type="text" maxlength="12" placeholder="ENTER YOUR NAME"
+               style="width:100%;padding:11px;font-size:16px;text-align:center;
+                      background:#1a0d00;border:3px solid #8b5e1a;color:#ffe066;
+                      font-family:'Press Start 2P',monospace;border-radius:6px;box-sizing:border-box;">
+      </div>
+
+      <button id="submitScoreBtn" style="
+        padding:10px 0;margin-bottom:12px;width:100%;max-width:300px;
+        background:linear-gradient(180deg,#7ed956,#4a9e1a);
+        border:3px solid #a8e04a;border-radius:8px;
+        color:#fff;font-family:'Press Start 2P',monospace;font-size:10px;
+        cursor:pointer;box-shadow:0 4px 0 #2d6010;">🏆 SUBMIT TO LEADERBOARD</button>
+
+      <div id="leaderboardContainer" style="width:100%;max-width:320px;
+           background:rgba(0,0,0,0.45);border:2px solid #5a3e1b;
+           padding:8px 10px;border-radius:8px;margin-bottom:12px;">
+        <div style="font-family:'Boogaloo',cursive;font-size:15px;color:#ffaa00;
+                     text-align:center;margin-bottom:5px;">🌍 TOP COWS 🌍</div>
+        <div id="leaderboardList" style="font-family:'Press Start 2P',monospace;font-size:9px;
+                                          line-height:1.9;color:#ccc;"></div>
+      </div>
+
+      <button onclick="startGame()" style="
+        padding:13px 28px;
+        background:linear-gradient(180deg,#7ed956,#4a9e1a);
+        border:3px solid #a8e04a;border-radius:10px;
+        color:#fff;font-family:'Press Start 2P',monospace;font-size:12px;
+        cursor:pointer;box-shadow:0 5px 0 #2d6010;
+        animation:btnPulse 1.6s ease-in-out infinite;">🐄 MOO AGAIN!</button>
     </div>
-
-    <button id="submitScoreBtn" 
-            style="margin-bottom:20px; padding:12px 40px; background:radial-gradient(circle,#e84040,#8b1a1a); border:3px solid #ff6666; border-radius:8px; color:#fff; font-family:'Press Start 2P',monospace; font-size:13px; cursor:pointer;">
-      SUBMIT TO GLOBAL LEADERBOARD
-    </button>
-
-    <div id="leaderboardContainer" style="width:100%; max-width:340px; text-align:left; background:rgba(0,0,0,0.6); border:2px solid #8b5e1a; padding:12px; border-radius:8px; font-family:'Press Start 2P',monospace; font-size:11px; color:#ccc;">
-      <div style="color:#ffaa00; text-align:center; margin-bottom:8px;">🌍 GLOBAL TOP 10 🌍</div>
-      <div id="leaderboardList" style="line-height:1.6;"></div>
-    </div>
-
-    <button id="playAgainBtn" onclick="startGame()" 
-            style="margin-top:20px; padding:14px 30px; background:radial-gradient(circle,#e84040,#8b1a1a); border:3px solid #ff6666; border-radius:8px; color:#fff; font-family:'Press Start 2P',monospace; font-size:13px; cursor:pointer; box-shadow:0 4px 0 #5a0f0f;">
-      PLAY AGAIN
-    </button>
   `;
 
   initFirebase();
@@ -1655,15 +1696,16 @@ async function loadLeaderboard() {
   const listEl2 = document.getElementById('leaderboardList');
   if (!listEl2) return;
 
+  const medals = ['🥇','🥈','🥉'];
   let html = '';
   if (scores.length === 0) {
-    html = '<div style="text-align:center; color:#666;">No scores yet — be the first!</div>';
+    html = '<div style="text-align:center;color:#666;">No scores yet — be the first!</div>';
   } else {
     scores.forEach((s, i) => {
       const isYou = submittedName && s.name === submittedName && s.score === state.score;
-      html += `<div style="display:flex; justify-content:space-between; ${isYou ? 'color:#ffe066; font-weight:bold;' : ''}">
-                 <span>${i+1}. ${s.name}</span>
-                 <span>${s.score}</span>
+      const rank  = i < 3 ? medals[i] : `${i+1}.`;
+      html += `<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #3a2810;${isYou?'color:#ffe066;':''}">
+                 <span>${rank} ${s.name}</span><span>${s.score}</span>
                </div>`;
     });
   }
