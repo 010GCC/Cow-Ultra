@@ -13,17 +13,18 @@
 
   body {
     background: #000;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    width: 100vw;
     height: 100vh;
     overflow: hidden;
     font-family: 'Boogaloo', cursive;
     touch-action: none;
+    position: relative;
   }
 
   #gameWrapper {
-    position: relative;
+    position: absolute;
+    top: 50%;
+    left: 50%;
     width: 400px;
     height: 700px;
     overflow: hidden;
@@ -33,7 +34,7 @@
     border: 3px solid #5a3e1b;
     box-shadow: 0 0 40px rgba(255,180,0,0.3);
     touch-action: none;
-    transform: translateY(25px);
+    transform-origin: center center;
   }
 
   #gameCanvas {
@@ -359,6 +360,19 @@ document.addEventListener('touchend', e => {
 document.addEventListener('touchmove', e => {
   if (e.touches.length > 1) e.preventDefault();
 }, { passive: false });
+
+// ── Responsive scaling ────────────────────────────────────────────────────────
+const GAME_W = 400, GAME_H = 700, FRAME = 12;
+function scaleGame() {
+  const scale = Math.min(
+    (window.innerWidth  - FRAME * 2) / GAME_W,
+    (window.innerHeight - FRAME * 2) / GAME_H
+  );
+  document.getElementById('gameWrapper').style.transform =
+    `translate(-50%, -50%) scale(${scale})`;
+}
+window.addEventListener('resize', scaleGame);
+scaleGame();
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
